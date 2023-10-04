@@ -1,0 +1,202 @@
+#include "handmade.h"
+	
+internal void
+RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int YOffset)
+{
+	//TODO: Let's see what the optimiser does
+
+	uint8 * Row = (uint8 *)Buffer->Memory;
+	for(int Y = 0;Y < Buffer->Height;++Y)
+	{
+		uint32 *Pixel = (uint32 *)Row;//cast to get the whole pixel
+		for(int X = 0; X < Buffer->Width; ++X)
+		{
+			/*
+			Little endian
+			Pixel in memory: BB GG RR xx
+			Pixel in Register: 0x xxRRGGBB
+			*/
+			
+				uint8 Blue = (uint8)(X+ XOffset);
+				uint8 Green = (uint8)(Y + YOffset);
+			
+				*Pixel++ = ((Green << 8) | Blue);
+			
+
+		}
+		Row = (uint8 *) Pixel;
+	}
+}
+
+internal void RenderPlayer(game_offscreen_buffer *BackBuffer, int PlayerX, int PlayerY)
+{
+	uint8 * EndOfBuffer = (uint8 *)((uint8*)BackBuffer->Memory + (BackBuffer->Pitch * BackBuffer->Height));
+	
+	uint32 Color = 0xFFFFFFFF;
+	int Top = PlayerY;
+	int Bottom = PlayerY + 10;
+	for(int X = PlayerX; X < PlayerX + 10; ++X)
+	{
+		uint8 * Pixel = ((uint8 * )BackBuffer->Memory + 
+		(X* BackBuffer->BytesPerPixel) + (Top*BackBuffer->Pitch));
+		
+		for(int Y = Top; Y < Bottom; ++Y)
+		{		
+			if((Pixel >= BackBuffer->Memory) && ((Pixel + 4) < EndOfBuffer))
+			{
+				*(uint32*)Pixel = Color;
+			}
+			
+			Pixel += BackBuffer->Pitch;
+		}
+	}
+}
+
+internal void GameOutputSound(game_sound_output *SoundBuffer, game_state * GameState)
+{
+	int16 SoundAmplitude = 500;
+	int WavePeriod = SoundBuffer->SamplesPerSecond/GameState->ToneHz;
+	
+	int16 * SampleWritten = SoundBuffer->Samples;
+	for(int SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex)
+	{	
+#if 0
+		real32 SineValue = (real32)sinf(GameState->tSine);
+		int16 SampleValue =  (int16)(SineValue  * SoundAmplitude);
+#else 
+		int16 SampleValue = 0;
+#endif	
+		*SampleWritten++ = SampleValue;
+		*SampleWritten++ = SampleValue;
+		
+		GameState->tSine += (real32)(2.0f * Pi32  / (real32)WavePeriod);
+
+		if(GameState->tSine >= 2.0f * Pi32)
+		{
+			GameState->tSine -= (real32)(2.0f * Pi32);
+		}
+
+	}
+}
+
+extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
+{
+	Assert((&Input->Controllers[0].Terminator - &Input->Controllers[0] .MoveUp) == (ArrayCount(Input->Controllers[0].Buttons)-1));
+	Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+	
+	game_state * GameState = (game_state * ) Memory->PermanentStorage;
+	
+	if(!Memory->IsInitialized)
+	{
+		char * Filename = __FILE__;
+		
+		debug_file_content FileContent= Memory->DEBUGPlatformReadEntireFile(ThreadContext, Filename);
+		if(FileContent.Content)
+		{
+			Memory->DEBUGPlatformWriteEntireFile(ThreadContext,"test.out",FileContent.ContentSize, FileContent.Content);	
+			Memory->DEBUGPlatformFreeFileMemory(ThreadContext, FileContent.Content);
+		
+		}
+		
+		
+		//uint64 FileSize = GetFileSize(Filename);
+		//void* BitmapMemory = ReserveMemory(Memory, FileSize);
+		//ReadEntireFileIntoMemory(Filename,BitmapMemory);
+		GameState->ToneHz = 512;
+		GameState->tSine = 0.0f;
+		
+		GameState->PlayerX = 100;
+		GameState->PlayerY = 100;
+		//TODO: This may be more appporpiate to do on the platform layer
+		Memory->IsInitialized = true;
+	}
+	
+	
+	for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
+	{
+		game_controller_input * Controller = GetController(Input, ControllerIndex);
+		
+		if(Controller->IsAnalog)
+		{
+			//NOTE : Use analog movement tuning
+			GameState->YOffset -=  (int)(4.0f *(Controller->StickAverageY));
+			GameState->XOffset += (int)(4.0f*(Controller->StickAverageX));
+			GameState->ToneHz =(int)(512 + (128.0f*Controller->StickAverageY));
+		}
+		else
+		{
+			//NOTE:Use digital movement tuning
+			if(Controller->MoveDown.ButtonEndedDown)
+			{
+				GameState->YOffset +=1;
+				GameState->PlayerY +=10; 
+			}
+			if(Controller->MoveUp.ButtonEndedDown)
+			{
+				GameState->YOffset -=1;
+				GameState->PlayerY -=10;
+			}
+			if(Controller->MoveRight.ButtonEndedDown)
+			{
+				GameState->XOffset +=1;
+				GameState->PlayerX +=10;
+			}
+			if(Controller->MoveLeft.ButtonEndedDown)
+			{
+				GameState->XOffset -=1;
+				GameState->PlayerX -=10;
+			}
+		}
+		
+		
+		GameState->PlayerX += (int)(4.0f*(Controller->StickAverageX));
+		GameState->PlayerY -=  (int)(4.0f *(Controller->StickAverageY));
+		if(GameState->tJump > 0)
+		{
+			GameState->PlayerY += (int)(5.0f*sinf(GameState->tJump * Pi32 *0.5f)); 
+		}
+		
+		if(Controller->ActionDown.ButtonEndedDown)
+		{
+			GameState->tJump = Pi32;
+		}
+		
+		GameState->tJump -= 0.033f;
+		
+		
+		
+	}
+
+	
+	RenderPlayer(Buffer, GameState->PlayerX, GameState->PlayerY);
+	RenderPlayer(Buffer, Input->MouseX, Input->MouseY);
+	
+	for(int ButtonIndex = 0; ButtonIndex < ArrayCount(Input->MouseButtons);++ButtonIndex)
+	{
+		if(Input->MouseButtons[ButtonIndex].ButtonEndedDown)
+		{
+			RenderPlayer(Buffer, 10 + (ButtonIndex * 20) , 10);	
+		}
+	}
+
+	
+	
+}
+
+extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
+{
+	game_state * GameState = (game_state * ) Memory->PermanentStorage;
+	GameOutputSound(SoundBuffer, GameState);
+}
+
+
+
+
+
+
+
+
+
+
+
+

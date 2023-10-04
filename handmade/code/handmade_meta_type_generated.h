@@ -1,0 +1,34 @@
+#define META_MEMBER_TYPE_ENUM()\
+enum member_definition_type\
+{\
+MetaType_b32,\
+MetaType_b32Ptr,\
+MetaType_collision_volume,\
+MetaType_collision_volumePtr,\
+MetaType_collision_volume_group,\
+MetaType_collision_volume_groupPtr,\
+MetaType_entity_reference,\
+MetaType_entity_referencePtr,\
+MetaType_entity_type,\
+MetaType_entity_typePtr,\
+MetaType_hit_point,\
+MetaType_hit_pointPtr,\
+MetaType_rectangle_3,\
+MetaType_rectangle_3Ptr,\
+MetaType_r32,\
+MetaType_r32Ptr,\
+MetaType_sim_entity,\
+MetaType_sim_entityPtr,\
+MetaType_u32,\
+MetaType_u32Ptr,\
+MetaType_uint32,\
+MetaType_uint32Ptr,\
+MetaType_uint8,\
+MetaType_uint8Ptr,\
+MetaType_vector_2,\
+MetaType_vector_2Ptr,\
+MetaType_vector_3,\
+MetaType_vector_3Ptr,\
+MetaType_world_chunk,\
+MetaType_world_chunkPtr,\
+};

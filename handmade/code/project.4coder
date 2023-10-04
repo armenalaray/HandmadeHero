@@ -1,0 +1,19 @@
+extensions=".c.cpp.h.hpp.bat.sh";
+
+fkey_command_win[1] = {"build.bat", "*Compilation*", true};
+fkey_command_win[2] = {"..\\misc\\shell.bat", "*Compilation*", true};
+fkey_command_win[3] = {"build.bat", "*Compilation*", true};
+fkey_command_win[4] = {"build.bat", "*Compilation*", true};
+fkey_command_win[5] = {"build.bat", "*Compilation*", true};
+fkey_command_win[6] = {"build.bat", "*Compilation*", true};
+fkey_command_win[7] = {"build.bat", "*Compilation*", true};
+fkey_command_win[8] = {"build.bat", "*Compilation*", true};
+fkey_command_win[9] = {"build.bat", "*Compilation*", true};
+fkey_command_win[10] = {"build.bat", "*Compilation*", true};
+fkey_command_win[11] = {"build.bat", "*Compilation*", true};
+fkey_command_win[12] = {"build.bat", "*Compilation*", true};
+fkey_command_win[13] = {"build.bat", "*Compilation*", true};
+fkey_command_win[14] = {"build.bat", "*Compilation*", true};
+fkey_command_win[15] = {"build.bat", "*Compilation*", true};
+fkey_command_win[16] = {"build.bat", "*Compilation*", true};
+
